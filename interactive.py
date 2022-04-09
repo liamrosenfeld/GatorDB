@@ -1,7 +1,7 @@
 from parse import parse_line
 
 
-def run_interactive():
+def run_interactive(args):
     print("Welcome to GatorDB!")
     while True:
         line = input("$ ")
