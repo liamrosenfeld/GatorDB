@@ -2,7 +2,6 @@ import random
 
 
 class Node:
-
     def __init__(self, parent=None):
         self.keys = []
         self.values: [Node] = []
@@ -32,14 +31,14 @@ class Node:
         mid = len(self.keys) // 2
 
         left.keys = self.keys[:mid]
-        left.values = self.values[:mid + 1]
+        left.values = self.values[: mid + 1]
 
         for child in left.values:
             child.parent = left
 
         key = self.keys[mid]
-        self.keys = self.keys[mid + 1:]
-        self.values = self.values[mid + 1:]
+        self.keys = self.keys[mid + 1 :]
+        self.values = self.values[mid + 1 :]
 
         return key, [left, self]
 
@@ -90,7 +89,6 @@ class Leaf(Node):
 
 
 class BPlusTree:
-
     def __init__(self, order: int = 100):
         self.root = Leaf()
         self.order = order
@@ -122,7 +120,7 @@ class BPlusTree:
 
         if type(node) is Node:
             for i, child in enumerate(node.values):
-                _last = (i == len(node.values) - 1)
+                _last = i == len(node.values) - 1
                 self.display(child, _prefix, _last)
 
     # --------- sugar support ---------
@@ -135,7 +133,7 @@ class BPlusTree:
             for elem in zip(curr.keys, curr.values):
                 yield elem
 
-            if (curr.next != None):
+            if curr.next != None:
                 curr = curr.next
             else:
                 break
@@ -143,7 +141,7 @@ class BPlusTree:
     def __setitem__(self, key, value):
         self.insert(key, value)
 
-    def __getitem__(self):
+    def __getitem__(self, key):
         return self.get(key)
 
     # --------- internal ---------
@@ -180,6 +178,7 @@ class BPlusTree:
             node = node.values[0]
         return node
 
+
 # ----------------------------------- testing ----------------------------------------- #
 
 
@@ -192,8 +191,8 @@ def demo():
         tree.display()
     for i in tree:
         print(i)
-    print(random_list[0], tree.search(random_list[0]))
-    print(tree.search(300))
+    print(random_list[0], tree.get(random_list[0]))
+    print(tree.get(300))
 
 
 if __name__ == "__main__":
