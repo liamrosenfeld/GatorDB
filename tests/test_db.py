@@ -108,7 +108,8 @@ class TableLoadTests(unittest.TestCase):
             name="favorite_number",
             col=ColumnInfo(dbtype=DBType.INTEGER),
         )
-        for i in range(100):
+        count = 100000
+        for i in range(count):
             table.insert(
                 {
                     "pk": i,
@@ -117,6 +118,7 @@ class TableLoadTests(unittest.TestCase):
                     "favorite_number": i,
                 }
             )
+        self.assertEqual(len(table.select_all()), count)
 
 
 if __name__ == "__main__":

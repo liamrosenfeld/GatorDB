@@ -2,8 +2,7 @@ from typing import Any, Dict, List
 from enum import Enum
 import json
 
-# from bplustree import BPlusTree, StrSerializer, IntSerializer
-
+import numpy as np
 from gdb_bplustree import BPlusTree
 
 from query import Equals
@@ -56,7 +55,10 @@ class ClusteredIndex(Index):
         self.tree.insert(pk, data)
 
     def get(self, pk) -> dict:
-        return json.loads(self.tree.get(pk).decode("utf-8"))
+        dict_ = self.tree.get(pk)
+        if not dict_:
+            return None
+        return json.loads(dict_.decode("utf-8"))
 
 
 class NonclusteredIndex(Index):
@@ -65,13 +67,15 @@ class NonclusteredIndex(Index):
 
     def insert(self, data, pk):
         if self.tree.get(data) is None:
-            self.tree.insert(data, bytes([pk]))
+            self.tree.insert(data, np.array([pk], dtype=np.int32).tobytes())
         else:
             pointers_to_pk = self.get(data)
-            self.tree[data] = bytes(pointers_to_pk + [pk])
+            self.tree[data] = np.concatenate(
+                (pointers_to_pk, np.array([pk], dtype=np.int32)), dtype=np.int32
+            ).tobytes()
 
-    def get(self, data) -> list:
-        return list(self.tree.get(data))
+    def get(self, data) -> np.ndarray:
+        return np.frombuffer(self.tree.get(data), dtype=np.int32)
 
 
 class Column:
