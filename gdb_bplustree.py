@@ -125,6 +125,7 @@ class BPlusTree:
                 _last = (i == len(node.values) - 1)
                 self.display(child, _prefix, _last)
 
+    # --------- sugar support ---------
     def __iter__(self):
         """Iterates over (key, value) of each leaf node"""
 
@@ -138,6 +139,12 @@ class BPlusTree:
                 curr = curr.next
             else:
                 break
+
+    def __setitem__(self, key, value):
+        self.insert(key, value)
+
+    def __getitem__(self, key):
+        return self.get(key)
 
     # --------- internal ---------
     def insert_from_split(self, key, values: [Node]):
@@ -185,8 +192,8 @@ def demo():
         tree.display()
     for i in tree:
         print(i)
-    print(random_list[0], tree.search(random_list[0]))
-    print(tree.search(300))
+    print(random_list[0], tree.get(random_list[0]))
+    print(tree.get(300))
 
 
 if __name__ == "__main__":
