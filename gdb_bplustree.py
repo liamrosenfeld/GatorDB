@@ -105,10 +105,10 @@ class BPlusTree:
         if len(leaf.keys) > self.order:
             self.insert_from_split(*leaf.split())
 
-    def search(key, root) -> Node:
+    def get(self, key) -> Node:
         leaf = self.find(key)
         if key in leaf.keys:
-            return leaf[key]
+            return leaf.get(key)
         else:
             return None
 
@@ -129,7 +129,7 @@ class BPlusTree:
         """Iterates over (key, value) of each leaf node"""
 
         curr = self.leftmost_leaf()
-        
+
         while True:
             for elem in zip(curr.keys, curr.values):
                 yield elem
@@ -175,6 +175,7 @@ class BPlusTree:
 
 # ----------------------------------- testing ----------------------------------------- #
 
+
 def demo():
     tree = BPlusTree(5)
     random_list = random.sample(range(1, 100), 30)
@@ -184,6 +185,8 @@ def demo():
         tree.display()
     for i in tree:
         print(i)
+    print(random_list[0], tree.search(random_list[0]))
+    print(tree.search(300))
 
 
 if __name__ == "__main__":
