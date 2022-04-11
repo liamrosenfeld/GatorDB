@@ -70,12 +70,16 @@ class Leaf(Node):
             self.values[idx - 1] = value
 
     def split(self):
+        # create new node
         left = Leaf(self.parent, self.prev, self)
-        mid = len(self.keys) // 2
+        self.prev = left
 
+        # set left node to half of the current node's values
+        mid = len(self.keys) // 2
         left.keys = self.keys[:mid]
         left.values = self.values[:mid]
 
+        # drop the first half of the current node't value
         self.keys = self.keys[mid:]
         self.values = self.values[mid:]
 
@@ -91,6 +95,7 @@ class BPlusTree:
         self.root = Leaf()
         self.order = order
 
+    # --------- public ---------
     def insert(self, key, value):
         leaf = self.find(key)
         leaf.set(key, value)
@@ -100,6 +105,41 @@ class BPlusTree:
         if len(leaf.keys) > self.order:
             self.insert_from_split(*leaf.split())
 
+    def search(key, root) -> Node:
+        leaf = self.find(key)
+        if key in leaf.keys:
+            return leaf[key]
+        else:
+            return None
+
+    def display(self, node=None, _prefix="", _last=True):
+        if node is None:
+            node = self.root
+
+        print(_prefix, "└─ " if _last else "├─ ", node.keys, sep="")
+
+        _prefix += "   " if _last else "│  "
+
+        if type(node) is Node:
+            for i, child in enumerate(node.values):
+                _last = (i == len(node.values) - 1)
+                self.display(child, _prefix, _last)
+
+    def __iter__(self):
+        """Iterates over (key, value) of each leaf node"""
+
+        curr = self.leftmost_leaf()
+        
+        while True:
+            for elem in zip(curr.keys, curr.values):
+                yield elem
+
+            if (curr.next != None):
+                curr = curr.next
+            else:
+                break
+
+    # --------- internal ---------
     def insert_from_split(self, key, values: [Node]):
         parent: Node = values[0].parent
 
@@ -127,36 +167,23 @@ class BPlusTree:
             node = node.get(key)
         return node
 
-    def search(key, root) -> Node:
-        leaf = self.find(key)
-        if key in leaf.keys:
-            return leaf[key]
-        else:
-            return None
+    def leftmost_leaf(self) -> Leaf:
+        node = self.root
+        while type(node) is not Leaf:
+            node = node.values[0]
+        return node
 
-    def display(self, node=None, _prefix="", _last=True):
-        if node is None:
-            node = self.root
-
-        print(_prefix, "└─ " if _last else "├─ ", node.keys, sep="")
-
-        _prefix += "   " if _last else "│  "
-
-        if type(node) is Node:
-            for i, child in enumerate(node.values):
-                _last = (i == len(node.values) - 1)
-                self.display(child, _prefix, _last)
-
-
-# ---------------------------------------------------------------------------- #
+# ----------------------------------- testing ----------------------------------------- #
 
 def demo():
     tree = BPlusTree(5)
-    random_list = random.sample(range(1, 100), 40)
+    random_list = random.sample(range(1, 100), 30)
     for i in random_list:
         tree.insert(i, f"test{i}")
         print(f"Insert {i}")
         tree.display()
+    for i in tree:
+        print(i)
 
 
 if __name__ == "__main__":
