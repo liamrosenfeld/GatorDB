@@ -1,4 +1,4 @@
-import random
+from typing import List
 
 
 class Node:
@@ -44,10 +44,10 @@ class Node:
 
 
 class Leaf(Node):
-    def __init__(self, parent: Node = None, prev: Node = None, next: Node = None):
+    def __init__(self, parent: Node = None, prev: "Leaf" = None, next: "Leaf" = None):
         super(Leaf, self).__init__(parent)
-        self.prev: Leaf = prev
-        self.next: Leaf = next
+        self.prev: Leaf | None = prev
+        self.next: Leaf | None = next
 
         # set prev and next of surrounding
         if next is not None:
@@ -103,25 +103,28 @@ class BPlusTree:
         if len(leaf.keys) > self.order:
             self.insert_from_split(*leaf.split())
 
-    def get(self, key) -> Node:
+    def get(self, key) -> Node | None:
         leaf = self.find(key)
         if key in leaf.keys:
             return leaf.get(key)
         else:
             return None
 
-    def display(self, node=None, _prefix="", _last=True):
+    def display(self, node=None, _prefix="", _last=True, imm="") -> str:
         if node is None:
             node = self.root
 
-        print(_prefix, "└─ " if _last else "├─ ", node.keys, sep="")
+        imm += _prefix + ("└─ " if _last else "├─ ") + str(node.keys)
 
         _prefix += "   " if _last else "│  "
 
         if type(node) is Node:
             for i, child in enumerate(node.values):
                 _last = i == len(node.values) - 1
-                self.display(child, _prefix, _last)
+                imm += "\n"
+                imm = self.display(child, _prefix, _last, imm)
+
+        return imm
 
     # --------- sugar support ---------
     def __iter__(self):
@@ -145,7 +148,7 @@ class BPlusTree:
         return self.get(key)
 
     # --------- internal ---------
-    def insert_from_split(self, key, values: [Node]):
+    def insert_from_split(self, key, values: List[Node]):
         parent: Node = values[0].parent
 
         if parent is None:
@@ -177,23 +180,3 @@ class BPlusTree:
         while type(node) is not Leaf:
             node = node.values[0]
         return node
-
-
-# ----------------------------------- testing ----------------------------------------- #
-
-
-def demo():
-    tree = BPlusTree(5)
-    random_list = random.sample(range(1, 100), 30)
-    for i in random_list:
-        tree.insert(i, f"test{i}")
-        print(f"Insert {i}")
-        tree.display()
-    for i in tree:
-        print(i)
-    print(random_list[0], tree.get(random_list[0]))
-    print(tree.get(300))
-
-
-if __name__ == "__main__":
-    demo()
