@@ -5,7 +5,7 @@ import json
 import numpy as np
 from gdb_bplustree import BPlusTree
 
-from query import Equals
+from query import Change, Condition, ConditionType
 from utils import serialize_dict, serialize_str
 
 
@@ -128,9 +128,17 @@ class DBTable:
             for key, value in self._pk_col().index.values()
         ]
 
-    def select_equals(self, equals: Equals) -> List[Dict]:
-        pks = self.cols[equals.col].get(equals.val)
-        return [self._pk_col().get(pk) for pk in pks]
+    def select(self, pks) -> List[Dict]:
+        """Returns dicts from pks"""
+        return [self._pk_col().index.get(pk=pk) for pk in pks]
+
+    def filter(self, condition: Condition) -> List[int]:
+        """Returns pks of items that match filter"""
+        if condition.type == ConditionType.EQUALS:
+            pks = self.cols[condition.col].get(condition.val)
+        else:
+            raise ValueError("Invalid condition code")
+        return pks
 
     def insert(self, data: Dict[str, Any]):
         if not self._is_valid_shape(data):
@@ -141,6 +149,18 @@ class DBTable:
             if col_name == self.primary_key:
                 continue
             col.insert(data[col_name], pk_value)
+
+    def update(self, pks: np.ndarray, changes: List[Change]):
+        for change in changes:
+            self.cols[change.col]
+            # Set column to value
+
+    def delete(self, pks: np.ndarray):
+        for pk in pks:
+            # delete pk in clustered tree
+            # delete nodes in nonclustered tree
+            pass
+        pass
 
     def close(self):
         for col in self.cols.values():

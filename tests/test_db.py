@@ -1,7 +1,7 @@
 import unittest
 
 from db import ColumnInfo, DBTable, DBType
-from query import Equals
+from query import Condition, ConditionType
 
 
 class TableTests(unittest.TestCase):
@@ -40,7 +40,19 @@ class TableTests(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            table.select_equals(equals=Equals("first_name", "John")),
+            list(
+                table.filter(
+                    condition=Condition(ConditionType.EQUALS, "first_name", "John")
+                )
+            ),
+            [1, 2],
+        )
+        self.assertEqual(
+            table.select(
+                table.filter(
+                    condition=Condition(ConditionType.EQUALS, "first_name", "John")
+                )
+            ),
             [
                 {
                     "pk": 1,
@@ -57,7 +69,11 @@ class TableTests(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            table.select_equals(equals=Equals("favorite_number", 22)),
+            table.select(
+                table.filter(
+                    condition=Condition(ConditionType.EQUALS, "favorite_number", 22)
+                )
+            ),
             [
                 {
                     "pk": 2,
@@ -68,32 +84,6 @@ class TableTests(unittest.TestCase):
             ],
         )
         table.close()
-
-    # def test_select_equals(self):
-    #     table = DBTable(name="favorite_numbers", path="/tmp/")
-    #     self.assertEqual(
-    #         table.select_equals(equals=Equals("first_name", "John")),
-    #         [
-    #             {
-    #                 "pk": 1,
-    #                 "first_name": "John",
-    #                 "last_name": "Smith",
-    #                 "favorite_number": 15,
-    #             }
-    #         ],
-    #     )
-    #     self.assertEqual(
-    #         table.select_equals(equals=Equals("favorite_number", 22)),
-    #         [
-    #             {
-    #                 "pk": 1,
-    #                 "first_name": "John",
-    #                 "last_name": "Smith",
-    #                 "favorite_number": 22,
-    #             }
-    #         ],
-    #     )
-    #     table.close()
 
 
 class TableLoadTests(unittest.TestCase):
