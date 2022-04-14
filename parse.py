@@ -1,3 +1,6 @@
+from sqlengine import SQLEngine
+
+
 def create_table():
     pass
 
@@ -27,7 +30,6 @@ COMMANDS = {
 
 
 def parse_line(line: str):
-    if line in COMMANDS:
-        print("Command currently a work in progress 🏗️ !")
-    else:
-        print("Command not recognized.")
+    engine = SQLEngine()
+    output = engine.parse_sql(line)
+    print(output)
