@@ -39,14 +39,14 @@ class SQLEngine:
                         if index == -1:
                             name = None
                         else:
-                            name = next_token.value[index + 1:]
+                            name = next_token.value[index + 1:].strip()
                             i = i + 1
                     elif token.normalized == 'KEY':
                         continue
                     else:
                         raise ValueError("Unsupported keyword: %s" % token.value)
                 elif token.ttype is None or token.ttype == sqlparse.tokens.Keyword:
-                    name = token.value
+                    name = token.value.strip()
                 elif token.ttype == sqlparse.tokens.Name.Builtin:
                     if token.normalized == 'float' or token.normalized == 'varchar' or token.normalized == 'integer':
                         field = token.normalized
