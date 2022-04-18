@@ -179,14 +179,24 @@ class DBTable:
             col.insert(data[col_name], pk_value)
 
     def update(self, pks: np.ndarray, changes: List[Change]):
-        for change in changes:
-            self.cols[change.col]
-            # Set column to value
+        for pk in pks:
+            data_dict = self._pk_col().get(pk)
+
+            for change in changes:
+                # Nonclustered Index: Remove and recreate pk pointer
+                self.cols[change.col].delete(data_dict[change.col], pk)
+                self.cols[change.col].insert(change.val, pk)
+
+                # Clustered Index: Update dict
+                data_dict[change.col] = change.val
+                # Insert updates when key already exists
+                self._pk_col().insert(serialize_dict(data_dict), pk)
 
     def delete(self, pks: np.ndarray):
         for pk in pks:
-            # get list of attributes
             data_dict = self._pk_col().get(pk)
+
+            # get list of attributes
             attrs = list(data_dict.keys())[1:]  # don't include pk in attrs
 
             # delete nodes in nonclustered tree
