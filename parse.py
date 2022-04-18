@@ -18,7 +18,7 @@ def get_db_type(column_type):
     """
     if column_type == 'integer':
         return DBType.INTEGER
-    elif column_type == 'varchar':
+    elif column_type == 'text' or column_type == 'varchar':
         return DBType.STRING
     elif column_type == 'float':
         return DBType.FLOAT
