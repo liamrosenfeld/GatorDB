@@ -42,6 +42,21 @@ class Node:
 
         return key, [left, self]
 
+    # --------- deleting ---------
+    def delete(self, key):
+        # delete the value for the key
+        idx = self.properIdx(key)
+        self.values.pop(idx)
+
+        # delete the key for the value
+        if idx < len(self.keys):
+            # the key is in the middle, delete normal
+            self.keys.pop(idx)
+        else:
+            # if it's the value hanging off the right side,
+            # delete the last key
+            self.keys.pop(idx - 1)
+
 
 class Leaf(Node):
     def __init__(self, parent: Node = None, prev: "Leaf" = None, next: "Leaf" = None):
@@ -87,20 +102,30 @@ class Leaf(Node):
 
         return parentKey, [left, self]
 
+    # --------- deleting ---------
+    def delete(self, key):
+        # easier for leaves because keys 🤝 values here
+        idx = self.keys.index(key)
+        self.keys.pop(idx)
+        self.values.pop(idx)
+
 
 class BPlusTree:
-    def __init__(self, order: int = 100):
+    def __init__(self, max_degree: int = 100):
         self.root = Leaf()
-        self.order = order
+        self.order = max_degree
+        self.max_keys = max_degree - 1
+        self.min_keys = max_degree // 2
 
     # --------- public ---------
     def insert(self, key, value):
+        """Inserts if key is new. Updates if already exists"""
         leaf = self.find(key)
         leaf.set(key, value)
 
-        # if greater than order,
+        # if greater than max_keys,
         # will need to split and then insert that into the tree
-        if len(leaf.keys) > self.order:
+        if len(leaf.keys) > self.max_keys:
             self.insert_from_split(*leaf.split())
 
     def get(self, key) -> Node | None:
@@ -109,6 +134,12 @@ class BPlusTree:
             return leaf.get(key)
         else:
             return None
+
+    def delete(self, key):
+        node = self.find(key)
+        node.delete(key)
+
+        # rebalance *might* be implemented in the future
 
     def display(self, node=None, _prefix="", _last=True, imm="") -> str:
         if node is None:
@@ -164,7 +195,7 @@ class BPlusTree:
         parent.set(key, values)
 
         # if the the parent is now full, we need to do this whole things over again
-        if len(parent.keys) > self.order:
+        if len(parent.keys) > self.max_keys:
             self.insert_from_split(*parent.split())
 
     def find(self, key) -> Leaf:
