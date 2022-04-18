@@ -1,3 +1,4 @@
+from typing import Dict
 from db import ColumnInfo, DBTable, DBType
 from sqlengine import SQLEngine
 from query import Condition, ConditionType
@@ -6,7 +7,7 @@ from query import Condition, ConditionType
 engine = SQLEngine()
 
 # Holds all the tables
-tables = {}
+tables: Dict[str, DBTable] = {}
 
 
 def get_db_type(column_type):
@@ -16,11 +17,11 @@ def get_db_type(column_type):
     :return: the DBType equivalent enum
     :raises: ValueError if the data type is not supported
     """
-    if column_type == 'integer':
+    if column_type in ("integer", "int"):
         return DBType.INTEGER
     elif column_type == 'text' or column_type == 'varchar':
         return DBType.STRING
-    elif column_type == 'float':
+    elif column_type == "float":
         return DBType.FLOAT
     raise ValueError("Unknown column type: " + column_type)
 
@@ -44,9 +45,14 @@ def convert_value_to_data_type(value, table, column_name):
         if column_type == DBType.FLOAT:
             return float(value)
         else:
-            raise ValueError("Invalid column type for column %s in table %s" % (column_name, table.name))
+            raise ValueError(
+                "Invalid column type for column %s in table %s"
+                % (column_name, table.name)
+            )
     except KeyError:
-        raise ValueError("The table %s does not have a column called %s" % (table.name, column_name))
+        raise ValueError(
+            "The table %s does not have a column called %s" % (table.name, column_name)
+        )
 
 
 def create_table(table_name, attributes, primary_key):
@@ -65,9 +71,15 @@ def create_table(table_name, attributes, primary_key):
         for column_name, column_type in attributes.items():
             is_primary_key = primary_key == column_name
             db_type = get_db_type(column_type)
-            table.add_column(name=column_name, col=ColumnInfo(dbtype=db_type, primary_key=is_primary_key))
+            table.add_column(
+                name=column_name,
+                col=ColumnInfo(dbtype=db_type, primary_key=is_primary_key),
+            )
         tables[table_name] = table
-        print("Successfully created table '%s' with %d columns" % (table_name, len(attributes)))
+        print(
+            "Successfully created table '%s' with %d columns"
+            % (table_name, len(attributes))
+        )
 
 
 def select(table_name, where_colum, equals_value):
@@ -85,7 +97,9 @@ def select(table_name, where_colum, equals_value):
             result = table.select_all()
         else:
             equals_value = convert_value_to_data_type(equals_value, table, where_colum)
-            pks = table.filter(Condition(ConditionType.EQUALS,where_colum, equals_value))
+            pks = table.filter(
+                Condition(ConditionType.EQUALS, where_colum, equals_value)
+            )
             result = table.select(pks)
         print(result)
     else:
@@ -113,6 +127,44 @@ def insert_into(table_name, values):
         raise ValueError("Table %s does not exist" % table_name)
 
 
+def update(table_name, values, where_colum, equals_value):
+    if table_name in tables:
+        pass
+    else:
+        raise ValueError("Table %s does not exist" % table_name)
+
+
+def delete(table_name, where_colum, equals_value):
+    """
+    Delete some data (rows) in the table
+    :param table_name: name of the table
+    :param where_colum: where column
+    :param equals_value: equivalence value in the where column
+    :return: None
+    :raises: ValueError if the table does not exist
+    """
+    if table_name in tables:
+        table = tables[table_name]
+        if where_colum is None or equals_value is None:
+            raise ValueError(
+                "DELETE command missing condition. If deleting all conditions is desired, call TRUNCATE instead."
+            )
+        else:
+            equals_value = convert_value_to_data_type(equals_value, table, where_colum)
+            deleted_count = table.delete(
+                table.filter(Condition(ConditionType.EQUALS, where_colum, equals_value))
+            )
+        if deleted_count > 0:
+            print(
+                "Successfully deleted %s rows from the table %s"
+                % (deleted_count, table_name)
+            )
+        else:
+            print("No rows matched. Did not delete any rows.")
+    else:
+        raise ValueError("Table %s does not exist" % table_name)
+
+
 def truncate(table_name, where_colum, equals_value):  # delete rows
     """
     Delete some data (rows) in the table
@@ -125,11 +177,10 @@ def truncate(table_name, where_colum, equals_value):  # delete rows
     if table_name in tables:
         table = tables[table_name]
         if where_colum is None or equals_value is None:
-            deleted_count = table.delete_all_rows()
+            table.delete_all_rows()
         else:
-            equals_value = convert_value_to_data_type(equals_value, table, where_colum)
-            deleted_count = table.delete_equals(equals=Condition(ConditionType.EQUALS, where_colum, equals_value))
-        print("Successfully deleted %s rows from the table %s" % (deleted_count, table_name))
+            raise ValueError("Invalid TRUNCATE command")
+        print("Successfully truncated table %s" % (table_name))
     else:
         raise ValueError("Table %s does not exist" % table_name)
 
@@ -158,29 +209,41 @@ def parse_line(line: str):
     """
     try:
         parsed = engine.parse_sql(line)
-        if parsed['type'] == 'CREATE TABLE':
-            table_name = parsed['table_name']
-            attributes = parsed['attributes']
-            primary_key = parsed['primary_key']
+        if parsed["type"] == "CREATE TABLE":
+            table_name = parsed["table_name"]
+            attributes = parsed["attributes"]
+            primary_key = parsed["primary_key"]
             return create_table(table_name, attributes, primary_key)
-        elif parsed['type'] == 'SELECT':
-            table_name = parsed['table_name']
-            conditions = parsed['conditions']
+        elif parsed["type"] == "SELECT":
+            table_name = parsed["table_name"]
+            conditions = parsed["conditions"]
             where_colum = None if len(conditions) == 0 else list(conditions.keys())[0]
             equals_value = None if where_colum is None else conditions[where_colum]
             return select(table_name, where_colum, equals_value)
-        elif parsed['type'] == 'INSERT INTO':
-            table_name = parsed['table_name']
-            values = parsed['values']
+        elif parsed["type"] == "INSERT INTO":
+            table_name = parsed["table_name"]
+            values = parsed["values"]
             return insert_into(table_name, values)
-        elif parsed['type'] == 'TRUNCATE':
-            table_name = parsed['table_name']
-            conditions = parsed['conditions']
+        elif parsed["type"] == "UPDATE":
+            table_name = parsed["table_name"]
+            values = parsed["values"]
+            where_colum = None if len(conditions) == 0 else list(conditions.keys())[0]
+            equals_value = None if where_colum is None else conditions[where_colum]
+            return update(table_name, values, where_colum, equals_value)
+        elif parsed["type"] == "DELETE":
+            table_name = parsed["table_name"]
+            conditions = parsed["conditions"]
+            where_colum = None if len(conditions) == 0 else list(conditions.keys())[0]
+            equals_value = None if where_colum is None else conditions[where_colum]
+            return delete(table_name, where_colum, equals_value)
+        elif parsed["type"] == "TRUNCATE":
+            table_name = parsed["table_name"]
+            conditions = parsed["conditions"]
             where_colum = None if len(conditions) == 0 else list(conditions.keys())[0]
             equals_value = None if where_colum is None else conditions[where_colum]
             return truncate(table_name, where_colum, equals_value)
-        elif parsed['type'] == 'DROP TABLE':
-            table_name = parsed['table_name']
+        elif parsed["type"] == "DROP TABLE":
+            table_name = parsed["table_name"]
             return drop_table(table_name)
         else:
             raise ValueError("Unknown command")
