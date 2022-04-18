@@ -27,7 +27,7 @@ class Index:
 
         self.path: str = path
         self.name: str = name
-        self.tree: BPlusTree = BPlusTree(order=order)
+        self.tree: BPlusTree = BPlusTree(max_degree=order)
         # self.tree: BPlusTree = BPlusTree(
         #     self._get_disk_location(), order=order, serializer=serializer()
         # )
@@ -38,6 +38,9 @@ class Index:
 
     def insert(self, key, value):
         self.tree.insert(key, value)
+
+    def delete(self, key):
+        self.tree.delete(key)
 
     def values(self):
         return self.tree
@@ -75,7 +78,22 @@ class NonclusteredIndex(Index):
             ).tobytes()
 
     def get(self, data) -> np.ndarray:
-        return np.frombuffer(self.tree.get(data), dtype=np.int32)
+        pks = self.tree.get(data)
+        if pks is None:
+            return np.ndarray([])
+        return np.frombuffer(pks, dtype=np.int32)
+
+    def delete(self, data, pk):
+        """
+        If the data is duplicate, removes pointer of data to primary key.
+        Otherwise, removes data itself.
+        """
+        pks = self.get(data)
+        pks = np.delete(pks, np.where(pks == pk))
+        if pks.size == 0:
+            self.tree.delete(data)
+        else:
+            self.tree[data] = pks
 
 
 class Column:
@@ -87,14 +105,20 @@ class Column:
     ):
         self.col_info = col_info
 
-        index_type = ClusteredIndex if col_info.primary_key else NonclusteredIndex
-        self.index = index_type(name, dbtype=col_info.dbtype, path=path)
+        self.index_type = ClusteredIndex if col_info.primary_key else NonclusteredIndex
+        self.index = self.index_type(name, dbtype=col_info.dbtype, path=path)
 
     def insert(self, data, pk: int | str):
         self.index.insert(data, pk)
 
     def get(self, key):
         return self.index.get(key)
+
+    def delete(self, key, value=None):
+        if self.index_type == ClusteredIndex:
+            self.index.delete(key)
+        else:
+            self.index.delete(key, value)
 
 
 class DBTable:
@@ -132,9 +156,13 @@ class DBTable:
         """Returns dicts from pks"""
         return [self._pk_col().index.get(pk=pk) for pk in pks]
 
-    def filter(self, condition: Condition) -> List[int]:
+    def filter(self, condition: Condition) -> np.ndarray:
         """Returns pks of items that match filter"""
         if condition.type == ConditionType.EQUALS:
+            if not condition.col in self.cols:
+                raise ValueError(f"Column '{condition.col}' does not exist")
+            if condition.col == self.primary_key:
+                return np.array([condition.val], dtype=np.int32)
             pks = self.cols[condition.col].get(condition.val)
         else:
             raise ValueError("Invalid condition code")
@@ -157,10 +185,16 @@ class DBTable:
 
     def delete(self, pks: np.ndarray):
         for pk in pks:
-            # delete pk in clustered tree
+            # get list of attributes
+            data_dict = self._pk_col().get(pk)
+            attrs = list(data_dict.keys())[1:]  # don't include pk in attrs
+
             # delete nodes in nonclustered tree
-            pass
-        pass
+            for attr in attrs:
+                self.cols[attr].delete(data_dict[attr], pk)
+
+            # delete pk in clustered tree
+            self._pk_col().delete(pk)
 
     def close(self):
         for col in self.cols.values():
