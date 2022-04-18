@@ -78,8 +78,8 @@ class TableTests(unittest.TestCase):
                 "table_name": "fruits",
                 "conditions": {},
             },
-            "truncate fruits where fruitName = 'apple'": {
-                "type": "TRUNCATE",
+            "delete fruits where fruitName = 'apple'": {
+                "type": "DELETE",
                 "table_name": "fruits",
                 "conditions": {"fruitName": "apple"},
             },

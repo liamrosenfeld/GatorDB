@@ -80,7 +80,7 @@ class NonclusteredIndex(Index):
     def get(self, data) -> np.ndarray:
         pks = self.tree.get(data)
         if pks is None:
-            return np.ndarray([])
+            return np.array([])
         return np.frombuffer(pks, dtype=np.int32)
 
     def delete(self, data, pk):
@@ -152,8 +152,10 @@ class DBTable:
             for key, value in self._pk_col().index.values()
         ]
 
-    def select(self, pks) -> List[Dict]:
+    def select(self, pks: np.ndarray) -> List[Dict]:
         """Returns dicts from pks"""
+        if pks.size == 0:
+            return []
         return [self._pk_col().index.get(pk=pk) for pk in pks]
 
     def filter(self, condition: Condition) -> np.ndarray:
@@ -192,7 +194,7 @@ class DBTable:
                 # Insert updates when key already exists
                 self._pk_col().insert(serialize_dict(data_dict), pk)
 
-    def delete(self, pks: np.ndarray):
+    def delete(self, pks: np.ndarray) -> int:
         for pk in pks:
             data_dict = self._pk_col().get(pk)
 
@@ -205,6 +207,15 @@ class DBTable:
 
             # delete pk in clustered tree
             self._pk_col().delete(pk)
+        return pks.size
+
+    def delete_all_rows(self):
+        for col in self.cols:
+            self.cols[col] = Column(
+                name=col,
+                col_info=self.cols[col].col_info,
+                path=self.path,
+            )
 
     def close(self):
         for col in self.cols.values():
