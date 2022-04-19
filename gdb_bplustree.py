@@ -112,8 +112,9 @@ class Leaf(Node):
 
 
 class BPlusTree:
-    def __init__(self, max_degree: int = 100):
+    def __init__(self, default_path: str, max_degree: int = 100):
         self.root = Leaf()
+        self.path = default_path
         self.order = max_degree
         self.max_keys = max_degree - 1
         self.min_keys = max_degree // 2
@@ -142,12 +143,14 @@ class BPlusTree:
 
         # rebalance *might* be implemented in the future
 
-    def save(self, name: str):
-        pickle.dump(self, open(name, "wb"))
+    def save(self, path: str = None):
+        if path is None:
+            path = self.path
+        pickle.dump(self, open(path, "wb"))
 
     @staticmethod
-    def load(name: str) -> "BPlusTree":
-        return pickle.load(open(name, "rb"))
+    def load(path: str) -> "BPlusTree":
+        return pickle.load(open(path, "rb"))
 
     def display(self, node=None, _prefix="", _last=True, imm="") -> str:
         if node is None:
