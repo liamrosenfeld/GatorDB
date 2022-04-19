@@ -2,6 +2,7 @@ from typing import Dict
 from db import ColumnInfo, DBTable, DBType
 from sqlengine import SQLEngine
 from query import Condition, ConditionType
+from tabulate import tabulate
 
 # SQL parsing engine
 engine = SQLEngine()
@@ -101,7 +102,12 @@ def select(table_name, where_colum, equals_value):
                 Condition(ConditionType.EQUALS, where_colum, equals_value)
             )
             result = table.select(pks)
-        print(result)
+        # print the results
+        headers = list(table.cols.keys())
+        table_data = []
+        for i in result:
+            table_data.append(list(i.values()))
+        print(tabulate(table_data, headers=headers))
     else:
         raise ValueError("Table %s does not exist" % table_name)
 
