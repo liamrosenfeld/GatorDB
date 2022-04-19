@@ -6,7 +6,7 @@ import numpy as np
 from gdb_bplustree import BPlusTree
 
 from query import Change, Condition, ConditionType
-from utils import serialize_dict, serialize_str
+from utils import serialize_dict
 
 
 class DBType(Enum):
@@ -23,15 +23,9 @@ class ColumnInfo:
 
 class Index:
     def __init__(self, name: str, dbtype: DBType, path, order=50):
-        # serializer = StrSerializer if dbtype == dbtype.STRING else IntSerializer
-
         self.path: str = path
         self.name: str = name
-        self.tree: BPlusTree = BPlusTree(max_degree=order)
-        # self.tree: BPlusTree = BPlusTree(
-        #     self._get_disk_location(), order=order, serializer=serializer()
-        # )
-        # print(self.tree)
+        self.tree: BPlusTree = BPlusTree(path=f"{path}/{name}.tree", max_degree=order)
 
     def _get_disk_location(self):
         return "-".join([self.path, self.name + ".db"])
@@ -45,9 +39,8 @@ class Index:
     def values(self):
         return self.tree
 
-    def close(self):
-        pass
-        # self.tree.close()
+    def save(self):
+        self.tree.save()
 
 
 class ClusteredIndex(Index):
@@ -101,7 +94,7 @@ class Column:
         self,
         name: str,
         col_info: ColumnInfo,
-        path: str = "/tmp/",
+        path: str = "",
     ):
         self.col_info = col_info
 
@@ -122,7 +115,7 @@ class Column:
 
 
 class DBTable:
-    def __init__(self, name: str = "Default Table", path: str = "/tmp/"):
+    def __init__(self, name: str = "Default Table", path: str = ""):
         self.path = "".join([path, name])
         self.name = name
         self.cols: Dict[str, Column] = {}
@@ -217,11 +210,7 @@ class DBTable:
                 path=self.path,
             )
 
-    def close(self):
-        for col in self.cols.values():
-            col.index.close()
-
-
-class DB:
-    def __init__(self, dir: str = "/tmp"):
-        self.dest = dir
+    def save(self):
+        # for col in self.cols.values():
+        #     col.index.save()
+        pass
