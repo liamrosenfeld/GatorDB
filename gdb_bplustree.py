@@ -1,4 +1,5 @@
 from typing import List
+from os.path import exists
 import pickle
 
 
@@ -112,12 +113,20 @@ class Leaf(Node):
 
 
 class BPlusTree:
-    def __init__(self, default_path: str, max_degree: int = 100):
-        self.root = Leaf()
-        self.path = default_path
-        self.order = max_degree
-        self.max_keys = max_degree - 1
-        self.min_keys = max_degree // 2
+    def __init__(self, path: str, max_degree: int = 100):
+        if exists(path):
+            # tree already exists
+            old_tree = pickle.load(open(path, "rb"))
+            self.root = old_tree.root
+            self.path = old_tree.path
+            self.max_keys = old_tree.max_keys
+            self.min_keys = old_tree.min_keys
+        else:
+            # new tree
+            self.root = Leaf()
+            self.path = path
+            self.max_keys = max_degree - 1
+            self.min_keys = max_degree // 2
 
     # --------- public ---------
     def insert(self, key, value):
@@ -147,10 +156,6 @@ class BPlusTree:
         if path is None:
             path = self.path
         pickle.dump(self, open(path, "wb"))
-
-    @staticmethod
-    def load(path: str) -> "BPlusTree":
-        return pickle.load(open(path, "rb"))
 
     def display(self, node=None, _prefix="", _last=True, imm="") -> str:
         if node is None:
