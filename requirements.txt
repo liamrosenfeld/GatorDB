@@ -12,3 +12,4 @@ sqlparse==0.4.2
 tomli==2.0.1
 typing_extensions==4.1.1
 tabulate==0.8.9
+faker==13.3.4

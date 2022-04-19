@@ -113,8 +113,8 @@ class Leaf(Node):
 
 
 class BPlusTree:
-    def __init__(self, path: str, max_degree: int = 100):
-        if exists(path):
+    def __init__(self, path: str = None, max_degree: int = 100):
+        if path is not None and exists(path):
             # tree already exists
             old_tree = pickle.load(open(path, "rb"))
             self.root = old_tree.root
@@ -154,7 +154,11 @@ class BPlusTree:
 
     def save(self, path: str = None):
         if path is None:
-            path = self.path
+            if self.path is not None:
+                path = self.path
+            else:
+                print("no save path provided")
+                return
         pickle.dump(self, open(path, "wb"))
 
     def display(self, node=None, _prefix="", _last=True, imm="") -> str:
