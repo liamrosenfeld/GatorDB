@@ -1,7 +1,7 @@
 from typing import Dict
 from db import ColumnInfo, DBTable, DBType
 from sqlengine import SQLEngine
-from query import Condition, ConditionType
+from query import Condition, ConditionType, Change
 from tabulate import tabulate
 
 # SQL parsing engine
@@ -20,7 +20,7 @@ def get_db_type(column_type):
     """
     if column_type in ("integer", "int"):
         return DBType.INTEGER
-    elif column_type == 'text' or column_type == 'varchar':
+    elif column_type in ("varchar", "text"):
         return DBType.STRING
     elif column_type == "float":
         return DBType.FLOAT
@@ -133,9 +133,26 @@ def insert_into(table_name, values):
         raise ValueError("Table %s does not exist" % table_name)
 
 
-def update(table_name, values, where_colum, equals_value):
+def update(table_name, conditions, new_values):
+    """
+    Update table to change column values
+    :param table_name: table name
+    :param conditions: conditions matching
+    :param new_values: new table values
+    :return: None
+    :raises: ValueError if the SQL statement is formatted badly
+    """
     if table_name in tables:
-        pass
+        table = tables[table_name]
+        condition_column_name = list(conditions.keys())[0]
+        condition_column_value = convert_value_to_data_type(list(conditions.values())[0], table, condition_column_name)
+        new_value_column_name = list(new_values.keys())[0]
+        new_value_column_value = convert_value_to_data_type(list(new_values.values())[0], table, new_value_column_name)
+        table.update(
+            table.filter(Condition(ConditionType.EQUALS, condition_column_name, condition_column_value)),
+            [Change(col=new_value_column_name, val=new_value_column_value)],
+        )
+        print("Successfully updated the table %s" % table_name)
     else:
         raise ValueError("Table %s does not exist" % table_name)
 
@@ -232,10 +249,9 @@ def parse_line(line: str):
             return insert_into(table_name, values)
         elif parsed["type"] == "UPDATE":
             table_name = parsed["table_name"]
-            values = parsed["values"]
-            where_colum = None if len(conditions) == 0 else list(conditions.keys())[0]
-            equals_value = None if where_colum is None else conditions[where_colum]
-            return update(table_name, values, where_colum, equals_value)
+            conditions = parsed["conditions"]
+            new_values = parsed["new_value"]
+            return update(table_name, conditions, new_values)
         elif parsed["type"] == "DELETE":
             table_name = parsed["table_name"]
             conditions = parsed["conditions"]
