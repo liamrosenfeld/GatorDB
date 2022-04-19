@@ -1,4 +1,5 @@
 from typing import List
+import pickle
 
 
 class Node:
@@ -140,6 +141,13 @@ class BPlusTree:
         node.delete(key)
 
         # rebalance *might* be implemented in the future
+
+    def save(self, name: str):
+        pickle.dump(self, open(name, "wb"))
+
+    @staticmethod
+    def load(name: str) -> "BPlusTree":
+        return pickle.load(open(name, "rb"))
 
     def display(self, node=None, _prefix="", _last=True, imm="") -> str:
         if node is None:
