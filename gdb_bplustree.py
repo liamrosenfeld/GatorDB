@@ -1,6 +1,10 @@
 from typing import List
 from os.path import exists
 import pickle
+import sys
+
+
+sys.setrecursionlimit(15000)
 
 
 class Node:

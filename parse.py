@@ -299,5 +299,6 @@ def parse_line(line: str):
         else:
             raise ValueError("Unknown command")
     except Exception as e:
+        traceback.print_exception(e)
         print_red(str(e))
     print()

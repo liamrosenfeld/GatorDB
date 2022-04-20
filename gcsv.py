@@ -2,17 +2,28 @@ import os
 from typing import Any, List
 import csv
 
-from db import ColumnInfo, DBTable
+from db import ColumnInfo, DBTable, DBType
 
 
-def create_columns(table: DBTable, headers: List[str]) -> None:
+def create_columns(table: DBTable, headers: List[str], reader: Any) -> None:
     if len(headers) < 1:
         raise ValueError("CSV: Invalid headers")
+
+    # Infer type from first row
+    first_row: List[str] = next(reader)
+    first_row_isnumerics = [val.isnumeric() for val in first_row]
+    first_row_types = [
+        DBType.INTEGER if val else DBType.STRING for val in first_row_isnumerics
+    ]
+
     first_header = headers[0]
     # Assume first column is pk
     table.add_column(first_header, ColumnInfo(primary_key=True))
-    for header in headers[1:]:
-        table.add_column(name=header, col=ColumnInfo())
+    for i, header in enumerate(headers[1:]):
+        table.add_column(
+            name=header,
+            col=ColumnInfo(dbtype=first_row_types[i + 1], primary_key=False),
+        )
 
 
 def insert_rows(table: DBTable, headers: List[str], reader: Any) -> int:
@@ -61,11 +72,12 @@ def run_csv(
 
         table = DBTable(name=table_name, path=dbdir)
 
-        headers = next(reader)
-        if not table_exists:
-            create_columns(table, headers)
+        headers: List[str] = next(reader)
 
-        rows_inserted = insert_rows(table, headers, reader)
+        if not table_exists:
+            create_columns(table, headers, reader)
+
+        rows_inserted = insert_rows(table, headers, reader) + 1
 
         table.save()
 

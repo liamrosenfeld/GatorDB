@@ -23,4 +23,4 @@ def gen(count: int, file: str):
 
 
 if __name__ == "__main__":
-    gen(1000, "large_test.csv")
+    gen(100000, "large_test.csv")
