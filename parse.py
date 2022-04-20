@@ -1,3 +1,5 @@
+import os
+import shutil
 import traceback
 
 from tabulate import tabulate
@@ -10,22 +12,23 @@ from utils import bolden, print_bold, print_green, print_red
 # SQL parsing engine
 engine = SQLEngine()
 
-# Holds all the tables
-tables = DB(name="database")
+# global tables
 
 
 def initialize_db(name: str):
     global tables
     tables = DB(name=name)
+    print(f"(Using database '{name}')")
 
 
-def get_db_type(column_type):
+def get_db_type(column_type: str):
     """
     Convert a data type string in SQL syntax into DBType enum
     :param column_type: SQL column type, e.g varchar
     :return: the DBType equivalent enum
     :raises: ValueError if the data type is not supported
     """
+    column_type = column_type.lower()
     if column_type in ("integer", "int"):
         return DBType.INTEGER
     elif column_type in ("varchar", "text"):
@@ -235,6 +238,7 @@ def drop_table(table_name):
         table = tables[table_name]
         table.save()
         del tables[table_name]
+        shutil.rmtree(os.path.join(tables.name, table_name))
         print_green("Successfully dropped the table %s" % table_name)
     else:
         raise ValueError("Table %s does not exist" % table_name)
@@ -246,6 +250,10 @@ def parse_line(line: str):
     :param line: SQL statement to parse
     :return: None
     """
+    if line.lower() in ("list_tables", "tables", ".tables", "\\dt"):
+        print_bold(", ".join(tables.keys()))
+        print()
+        return
     try:
         parsed = engine.parse_sql(line)
         if parsed["type"] == "CREATE TABLE":
@@ -288,7 +296,6 @@ def parse_line(line: str):
         elif parsed["type"] == "DROP TABLE":
             table_name = parsed["table_name"]
             drop_table(table_name)
-            tables[table_name].save()
         else:
             raise ValueError("Unknown command")
     except Exception as e:

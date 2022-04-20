@@ -47,16 +47,18 @@ def run_csv(
     with open(file_path) as f:
         reader = csv.reader(f, delimiter=delimiter)
 
-        dbexists = True
+        table_exists = False
 
         dbdir = os.path.join(os.curdir, dbpath)
         if not os.path.isdir(dbdir):
             os.mkdir(dbdir)
-            dbexists = False
+        if os.path.isdir("/".join([dbdir, table_name])):
+            table_exists = True
+
         table = DBTable(name=table_name, path=dbdir)
 
         headers = next(reader)
-        if not dbexists:
+        if not table_exists:
             create_columns(table, headers)
 
         rows_inserted = insert_rows(table, headers, reader)

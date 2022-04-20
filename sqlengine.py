@@ -39,7 +39,7 @@ class SQLEngine:
                         if index == -1:
                             name = None
                         else:
-                            name = next_token.value[index + 1:].strip()
+                            name = next_token.value[index + 1 :].strip()
                             i = i + 1
                     elif token.normalized == "KEY":
                         continue
@@ -49,11 +49,11 @@ class SQLEngine:
                     name = token.value.strip()
                 elif token.ttype == sqlparse.tokens.Name.Builtin:
                     if token.normalized in (
-                            "float",
-                            "varchar",
-                            "text",
-                            "integer",
-                            "int",
+                        "float",
+                        "varchar",
+                        "text",
+                        "integer",
+                        "int",
                     ):
                         field = token.normalized
                     else:
@@ -112,7 +112,7 @@ class SQLEngine:
             token = tokens[i]
             if not token.is_whitespace:
                 if token.normalized == "TABLE":
-                    return self.__parse_create_table_statement(tokens[i + 1:])
+                    return self.__parse_create_table_statement(tokens[i + 1 :])
                 else:
                     raise ValueError(
                         "Unsupported operation: CREATE " % token.normalized
@@ -143,17 +143,34 @@ class SQLEngine:
         :raises ValueError if the provided SQL statement is invalid
         """
         conditions = {}
+
+        following_wildcard = False
+
         for i in range(0, len(tokens)):
             token = tokens[i]
+
             if not token.is_whitespace:
+                if token.ttype == sqlparse.tokens.Wildcard:
+                    following_wildcard = True
+                    continue
+
                 if isinstance(token, sqlparse.sql.Identifier):
                     self.table_name = token.value
                 elif isinstance(token, sqlparse.sql.Where):
                     conditions = self.__parse_where_conditions(token.tokens[1:])
                 elif token.ttype == sqlparse.tokens.Punctuation:
                     continue
+                elif (
+                    token.ttype == sqlparse.tokens.Keyword
+                    and token.value == "FROM"
+                    and following_wildcard
+                ):
+                    continue
                 else:
                     raise ValueError("Unhandled operation in SELECT statement")
+
+                following_wildcard = False
+
         if self.table_name is None:
             raise ValueError("Missing identifier in SELECT statement")
         else:
@@ -229,9 +246,9 @@ class SQLEngine:
         found_into = False
         for token in tokens:
             found_into = found_into or (
-                    token.normalized == "INTO"
-                    and token.ttype == sqlparse.tokens.Keyword
-                    and token.is_keyword
+                token.normalized == "INTO"
+                and token.ttype == sqlparse.tokens.Keyword
+                and token.is_keyword
             )
             if not token.is_whitespace:
                 if isinstance(token, sqlparse.sql.Identifier):
@@ -270,21 +287,23 @@ class SQLEngine:
                 new_value[token.left.value] = token.right.value.strip('"').strip("'")
             elif isinstance(token, sqlparse.sql.Where):
                 conditions = self.__parse_where_conditions(token.tokens[1:])
-            elif token.normalized == 'SET' and token.is_keyword:
+            elif token.normalized == "SET" and token.is_keyword:
                 continue
             else:
                 raise ValueError("Unhandled syntax in UPDATE statement")
         if len(new_value) == 0:
             raise ValueError(
-                "New value is not defined in UPDATE statement, i.e missing SET <table_column> = <new value>")
+                "New value is not defined in UPDATE statement, i.e missing SET <table_column> = <new value>"
+            )
         if len(conditions) == 0:
             raise ValueError(
-                "Missing conditions in UPDATE statement, i.e missing WHERE <table_column> = <new value>")
+                "Missing conditions in UPDATE statement, i.e missing WHERE <table_column> = <new value>"
+            )
         return {
             "type": "UPDATE",
             "table_name": self.table_name,
             "conditions": conditions,
-            "new_value": new_value
+            "new_value": new_value,
         }
 
     def __parse_delete_statement(self, tokens):
@@ -345,9 +364,9 @@ class SQLEngine:
         found_table = False
         for token in tokens:
             found_table = found_table or (
-                    token.normalized == "TABLE"
-                    and token.ttype == sqlparse.tokens.Keyword
-                    and token.is_keyword
+                token.normalized == "TABLE"
+                and token.ttype == sqlparse.tokens.Keyword
+                and token.is_keyword
             )
             if isinstance(token, sqlparse.sql.Identifier):
                 self.table_name = token.value
@@ -373,13 +392,13 @@ class SQLEngine:
         """
         sql_upper = sql.upper().strip()
         if sql_upper.startswith("SWIPE"):
-            sql = "SELECT" + sql[len("SWIPE"):]
+            sql = "SELECT" + sql[len("SWIPE") :]
         elif sql_upper.startswith("HATCH"):
-            sql = "CREATE TABLE" + sql[len("HATCH"):]
+            sql = "CREATE TABLE" + sql[len("HATCH") :]
         elif sql_upper.startswith("CHOMP"):
-            sql = "TRUNCATE" + sql[len("CHOMP"):]
+            sql = "TRUNCATE" + sql[len("CHOMP") :]
         elif sql_upper.startswith("SWAMP"):
-            sql = "DROP TABLE" + sql[len("SWAMP"):]
+            sql = "DROP TABLE" + sql[len("SWAMP") :]
         return sql
 
     def parse_sql(self, sql):
@@ -397,7 +416,7 @@ class SQLEngine:
             for tokenId in range(0, len(tokens)):
                 token = tokens[tokenId]
                 if not token.is_whitespace:
-                    remaining_tokens = tokens[tokenId + 1:]
+                    remaining_tokens = tokens[tokenId + 1 :]
                     if token.normalized == "CREATE":
                         return self.__parse_create_statement(remaining_tokens)
                     elif token.normalized == "SELECT":

@@ -8,7 +8,7 @@ import numpy as np
 from gdb_bplustree import BPlusTree
 
 from query import Change, Condition, ConditionType
-from utils import serialize_dict
+from utils import print_red, serialize_dict
 
 
 class DBType(Enum):
@@ -136,12 +136,14 @@ class DBTable:
         self.primary_key = None
 
         if os.path.isdir(self.path):
-            if not os.path.isfile(self._cols_path()):
-                raise FileNotFoundError(
-                    "Corrupted GatorDB database: missing `cols` file"
-                )
-            cols = json.load(open(self._cols_path(), "r"))
-            # os.listdir(self.path)
+            if os.path.isfile(self._cols_path()):
+                cols = json.load(open(self._cols_path(), "r"))
+            else:
+                cols = os.listdir(self.path)
+                if len(cols) > 0:
+                    print_red(
+                        f"Warning: Table `{name}` missing 'cols' file. The database was not saved properly. Execution will still be attempted; columns will be read in alphabetical order."
+                    )
             for col in cols:
                 self.cols[col] = Column(name=col, path=self.path)
                 info = self.cols[col].col_info
