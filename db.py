@@ -1,3 +1,5 @@
+import os
+import pickle
 from typing import Any, Dict, List
 from enum import Enum
 import json
@@ -25,10 +27,8 @@ class Index:
     def __init__(self, name: str, dbtype: DBType, path, order=50):
         self.path: str = path
         self.name: str = name
-        self.tree: BPlusTree = BPlusTree(path=f"{path}/{name}.tree", max_degree=order)
 
-    def _get_disk_location(self):
-        return "-".join([self.path, self.name + ".db"])
+        self.tree: BPlusTree = BPlusTree(path=f"{path}/{name}.tree", max_degree=order)
 
     def insert(self, key, value):
         self.tree.insert(key, value)
@@ -90,16 +90,23 @@ class NonclusteredIndex(Index):
 
 
 class Column:
-    def __init__(
-        self,
-        name: str,
-        col_info: ColumnInfo,
-        path: str = "",
-    ):
-        self.col_info = col_info
+    def __init__(self, name: str, col_info: ColumnInfo = None, path: str = ""):
 
-        self.index_type = ClusteredIndex if col_info.primary_key else NonclusteredIndex
-        self.index = self.index_type(name, dbtype=col_info.dbtype, path=path)
+        self.path = "/".join([path, name])
+        self.name = name
+
+        if col_info:
+            self.col_info = col_info
+        else:
+            self.col_info = pickle.load(open(self._col_info_path(), "rb"))
+
+        self.index_type = (
+            ClusteredIndex if self.col_info.primary_key else NonclusteredIndex
+        )
+        self.index = self.index_type(name, dbtype=self.col_info.dbtype, path=self.path)
+
+        if not os.path.isdir(self.path):
+            os.mkdir(self.path)
 
     def insert(self, data, pk: int | str):
         self.index.insert(data, pk)
@@ -113,18 +120,42 @@ class Column:
         else:
             self.index.delete(key, value)
 
+    def _col_info_path(self):
+        return f"{self.path}/{self.name}.col"
+
+    def save(self):
+        pickle.dump(self.col_info, open(self._col_info_path(), "wb"))
+        self.index.save()
+
 
 class DBTable:
     def __init__(self, name: str = "Default Table", path: str = ""):
-        self.path = "".join([path, name])
+        self.path = "/".join([path, name])
         self.name = name
         self.cols: Dict[str, Column] = {}
         self.primary_key = None
+
+        if os.path.isdir(self.path):
+            if not os.path.isfile(self._cols_path()):
+                raise FileNotFoundError(
+                    "Corrupted GatorDB database: missing `cols` file"
+                )
+            cols = json.load(open(self._cols_path(), "r"))
+            # os.listdir(self.path)
+            for col in cols:
+                self.cols[col] = Column(name=col, path=self.path)
+                info = self.cols[col].col_info
+                if info.primary_key:
+                    self.primary_key = col
+        else:
+            os.mkdir(self.path)
 
     def _is_valid_shape(self, data: Dict[str, Any]) -> bool:
         return self.cols.keys() == data.keys()
 
     def _pk_col(self) -> Column:
+        if not self.primary_key:
+            raise ValueError("No primary key")
         return self.cols[self.primary_key]
 
     def set_primary_key(self, primary_key: str):
@@ -210,7 +241,23 @@ class DBTable:
                 path=self.path,
             )
 
+    def _cols_path(self):
+        return self.path + "/cols"
+
     def save(self):
-        # for col in self.cols.values():
-        #     col.index.save()
-        pass
+        for col in self.cols.values():
+            col.save()
+        json.dump(list(self.cols.keys()), open(self._cols_path(), "w"))
+
+
+class DB(dict):
+    def __init__(self, name: str, *args, **kwargs) -> "DB":
+        super().__init__(*args, **kwargs)
+
+        self.name = name
+
+        if not os.path.isdir(name):
+            os.mkdir(name)
+
+        for table_name in os.listdir(name):
+            self[table_name] = DBTable(name=table_name, path=name)

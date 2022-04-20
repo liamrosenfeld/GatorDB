@@ -10,10 +10,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--interactive", help="runs GatorDB in interactive mode", action="store_true"
     )
-    parser.add_argument("--csv", help="parses CSV into GatorDB table")
     parser.add_argument(
-        "--autocreate", help="CSV: create table if does not exist", action="store_true"
+        "--csv", help="parses CSV into GatorDB table; please specify csv file path."
     )
+    parser.add_argument("--csv-name", help="CSV: name of table to parse CSV into")
     parser.add_argument("--delimiter", help="CSV: delimiter", default=",")
     parser.add_argument("--dbpath", help="path to store db")
 
@@ -22,4 +22,4 @@ if __name__ == "__main__":
     if args.interactive:
         run_interactive(args)
     if args.csv:
-        run_csv(args.csv, args.delimiter, args.autocreate)
+        run_csv(args.csv, args.delimiter, args.csv_name, args.dbpath)

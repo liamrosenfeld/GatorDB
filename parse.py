@@ -1,8 +1,8 @@
 import traceback
-from typing import Dict
+
 from tabulate import tabulate
 
-from db import ColumnInfo, DBTable, DBType
+from db import DB, ColumnInfo, DBTable, DBType
 from sqlengine import SQLEngine
 from query import Condition, ConditionType, Change
 from utils import bolden, print_bold, print_green, print_red
@@ -11,7 +11,12 @@ from utils import bolden, print_bold, print_green, print_red
 engine = SQLEngine()
 
 # Holds all the tables
-tables: Dict[str, DBTable] = {}
+tables = DB(name="database")
+
+
+def initialize_db(name: str):
+    global tables
+    tables = DB(name=name)
 
 
 def get_db_type(column_type):
@@ -71,7 +76,7 @@ def create_table(table_name, attributes, primary_key):
     if table_name in tables:
         raise ValueError("Table %s already exists" % table_name)
     else:
-        table = DBTable(name=table_name, path="")
+        table = DBTable(name=table_name, path=tables.name)
         for column_name, column_type in attributes.items():
             is_primary_key = primary_key == column_name
             db_type = get_db_type(column_type)
