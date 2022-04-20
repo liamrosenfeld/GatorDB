@@ -18,6 +18,10 @@ def create_columns(table: DBTable, headers: List[str]) -> None:
 def insert_rows(table: DBTable, headers: List[str], reader: Any) -> int:
     count = 0
     for row in reader:
+        # Ignore blank rows
+        if not row:
+            continue
+
         to_insert = {}
         for val, header in zip(row, headers):
             if val.isnumeric():
