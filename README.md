@@ -104,7 +104,7 @@ Deletes all rows where the condition is matched.
 **TRUNCATE**
 
 ```sql
-TRUNCATE <table_name>
+TRUNCATE TABLE <table_name>
 ```
 
 **DROP**
