@@ -101,12 +101,6 @@ DELETE FROM <table_name> WHERE <col> = <val>
 
 Deletes all rows where the condition is matched.
 
-**TRUNCATE**
-
-```sql
-TRUNCATE TABLE <table_name>
-```
-
 **DROP**
 
 ```sql

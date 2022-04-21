@@ -48,14 +48,14 @@ class SQLEngine:
                 elif token.ttype is None or token.ttype == sqlparse.tokens.Keyword:
                     name = token.value.strip()
                 elif token.ttype == sqlparse.tokens.Name.Builtin:
-                    if token.normalized in (
+                    if token.normalized.lower() in (
                         "float",
                         "varchar",
                         "text",
                         "integer",
                         "int",
                     ):
-                        field = token.normalized
+                        field = token.normalized.lower()
                     else:
                         raise ValueError("Unsupported data type: " + token.value)
                 elif token.normalized == ")" or token.normalized == ",":
